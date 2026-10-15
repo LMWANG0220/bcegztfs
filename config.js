@@ -1,5 +1,5 @@
 /* ============================================================
-   桩头防水工艺样板轻量化模型
+   桩头防水处理工艺样板展示
    —— 一个链接 = 一个工艺样板，改这个文件就行
    ============================================================ */
 
@@ -7,10 +7,10 @@
 window.VERSION = '2';
 
 /* ② 工艺名称（页面顶部大字、微信标题） */
-window.TITLE = '桩头防水工艺样板轻量化模型';
+window.TITLE = '桩头防水处理工艺样板展示';
 
 /* ③ 副标题，不需要就写 '' */
-window.SUBTITLE = '卷材上翻 · 桩头收口 · 涂膜防水';
+window.SUBTITLE = 'PILE HEAD WATERPROOFING MOCK-UP';
 
 /* ④ 三张效果图（换成你的真实照片，文件名保持 1/2/3.jpg） */
 window.IMAGES = [
@@ -24,6 +24,6 @@ window.IMAGES = [
 window.LINK = 'https://example.com/zhuangtou-fangshui';
 
 /* ⑥ 最后一屏的文字（可改） */
-window.QR_TITLE = '查看桩头防水完整资料';   // 二维码上方
+window.QR_TITLE = '查看桩头防水轻量化模型';   // 二维码上方
 window.QR_TIP   = '长按识别二维码';        // 二维码下方
 window.BTN_TEXT = '直接打开';              // 下面那个按钮
