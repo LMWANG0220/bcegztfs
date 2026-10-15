@@ -161,7 +161,8 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
   var index = 0;
 
   var urls = IMGS.map(v);
-  var total = urls.length + 1;      // 三张效果图 + 最后一屏二维码
+  var CARD_N = (window.CARDS && window.CARDS.length) ? window.CARDS.length : 1;
+  var total = urls.length + CARD_N;   // 效果图 + 卡片页
 
   /* ---- 前面三张效果图 ---- */
   IMGS.forEach(function (src, i) {
@@ -178,37 +179,50 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
     bar.appendChild(document.createElement('span')).className = 'dot';
   });
 
-  /* ---- 最后一屏：二维码 + 按钮 ---- */
-  var qs = document.createElement('div'); qs.className = 'slide';
-  var card = document.createElement('div'); card.className = 'qr-card';
+  /* ---- 后面的卡片页（二维码页）：CARDS 配几段就出几页 ---- */
+  var CARDS = (window.CARDS && window.CARDS.length)
+    ? window.CARDS
+    : [{ title: window.QR_TITLE, link: window.LINK, tip: window.QR_TIP, btn: window.BTN_TEXT }];
 
-  var qt = document.createElement('div'); qt.className = 'qt';
-  qt.textContent = window.QR_TITLE || '扫码查看更多资料';
-  card.appendChild(qt);
+  CARDS.forEach(function (c, ci) {
+    var qs = document.createElement('div'); qs.className = 'slide';
+    var card = document.createElement('div'); card.className = 'qr-card';
 
-  var box = document.createElement('div'); box.className = 'qbox';
-  card.appendChild(box);
-  if (LINK) {
-    new QRCode(box, {
-      text: LINK, width: 250, height: 250,
-      colorDark: '#000000', colorLight: '#ffffff',
-      correctLevel: QRCode.CorrectLevel.H
-    });
-  }
+    var qt = document.createElement('div'); qt.className = 'qt';
+    qt.textContent = c.title || '扫码查看更多资料';
+    card.appendChild(qt);
 
-  var qp = document.createElement('div'); qp.className = 'qp';
-  qp.textContent = window.QR_TIP || '长按识别二维码';
-  card.appendChild(qp);
+    var box = document.createElement('div'); box.className = 'qbox';
+    card.appendChild(box);
 
-  if (LINK) {
-    var qb = document.createElement('a');
-    qb.className = 'qb'; qb.href = LINK; qb.target = '_blank';
-    qb.textContent = window.BTN_TEXT || '直接打开';
-    card.appendChild(qb);
-  }
+    if (c.qr) {
+      // 用现成的二维码截图
+      var qi = document.createElement('img');
+      qi.src = v(c.qr); qi.alt = '二维码';
+      box.appendChild(qi);
+    } else if (c.link) {
+      // 把网址自动画成二维码
+      new QRCode(box, {
+        text: c.link, width: 250, height: 250,
+        colorDark: '#000000', colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.H
+      });
+    }
 
-  qs.appendChild(card); track.appendChild(qs);
-  bar.appendChild(document.createElement('span')).className = 'dot qr';
+    var qp = document.createElement('div'); qp.className = 'qp';
+    qp.textContent = c.tip || '长按识别二维码';
+    card.appendChild(qp);
+
+    if (c.link && c.btn !== '') {
+      var qb = document.createElement('a');
+      qb.className = 'qb'; qb.href = c.link; qb.target = '_blank';
+      qb.textContent = c.btn || '直接打开';
+      card.appendChild(qb);
+    }
+
+    qs.appendChild(card); track.appendChild(qs);
+    bar.appendChild(document.createElement('span')).className = 'dot qr';
+  });
 
   var dots = bar.querySelectorAll('.dot');
   function setActive(i) {
