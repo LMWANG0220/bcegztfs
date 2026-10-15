@@ -11,7 +11,7 @@ window.VERSION = '4';
 window.TITLE = '桩头防水处理工艺样板展示';
 
 /* ③ 副标题（顶部小字），不需要就写 '' */
-window.SUBTITLE = '卷材上翻 · 桩头收口 · 涂膜防水';
+window.SUBTITLE = 'PILE HEAD WATERPROOFING MOCK-UP';
 
 /* ④ 效果图（张数随便，多加就多写一行） */
 window.IMAGES = [
@@ -37,22 +37,16 @@ window.IMAGES = [
    ============================================================ */
 window.CARDS = [
   {
-    title: '查看桩头防水完整资料',
-    link: 'https://example.com/zhuangtou-fangshui',
+    title: '查看桩头防水轻量化模型',
+    link: 'https://share-xt.hwbim.com/qlh/b46912f6981749419898d9c9d8f96271',
     tip: '长按识别二维码',
     btn: '直接打开'
   },
 
   {
-    title: '查看三维模型 / 技术交底',
-    link: 'https://example.com/zhuangtou-model',
+    title: '查看地下防水施工方案交底资料',
+    link: 'https://www.kdocs.cn/l/crFien0qF6I2',
     tip: '长按识别二维码',
     btn: '直接打开'
   }
 ];
-
-/* ⑥ 兜底：万一上面的 CARDS 被全删了，就用这一组（只出一页） */
-window.LINK     = 'https://example.com/zhuangtou-fangshui';
-window.QR_TITLE = '查看桩头防水完整资料';
-window.QR_TIP   = '长按识别二维码';
-window.BTN_TEXT = '直接打开';
