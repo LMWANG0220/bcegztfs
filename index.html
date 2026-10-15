@@ -70,17 +70,48 @@
   }
 
   .viewer {
-    position:fixed; inset:0; background:rgba(0,0,0,.94); z-index:99;
-    display:none; align-items:center; justify-content:center; flex-direction:column;
+    position:fixed; inset:0; background:rgba(0,0,0,.96); z-index:99;
+    display:none; align-items:center; justify-content:center;
+    touch-action:none; overflow:hidden;
   }
   .viewer.on { display:flex; }
-  .viewer img { max-width:100%; max-height:88%; object-fit:contain; }
+  .viewer .vstage {
+    width:100%; height:100%; display:flex; align-items:center; justify-content:center;
+    overflow:hidden; touch-action:none;
+  }
+  .viewer img#vimg {
+    max-width:100%; max-height:100%; object-fit:contain;
+    transform-origin:center center; will-change:transform;
+    -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
+  }
   .viewer .close {
     position:absolute; top:calc(env(safe-area-inset-top) + 14px); right:16px;
-    width:36px; height:36px; line-height:34px; text-align:center;
-    border-radius:50%; background:rgba(255,255,255,.16); font-size:20px;
+    width:38px; height:38px; line-height:36px; text-align:center; z-index:5;
+    border-radius:50%; background:rgba(255,255,255,.18); font-size:20px;
   }
-  .viewer .hint { color:#8b939c; font-size:13px; margin-top:14px; }
+  .viewer .hint {
+    position:absolute; left:0; right:0; bottom:calc(env(safe-area-inset-bottom) + 18px);
+    color:#9aa5b1; font-size:13px; text-align:center; z-index:5;
+    background:rgba(0,0,0,.45); padding:7px 0; pointer-events:none;
+  }
+  .viewer .zoombar {
+    position:absolute; right:16px; bottom:calc(env(safe-area-inset-bottom) + 62px);
+    z-index:5; display:flex; flex-direction:column; gap:10px;
+  }
+  .viewer .zoombar b {
+    width:42px; height:42px; line-height:40px; text-align:center; font-size:22px;
+    border-radius:50%; background:rgba(255,255,255,.18); color:#fff;
+    display:block; cursor:pointer; -webkit-user-select:none; user-select:none;
+  }
+
+  /* 轮播图上提示可点击放大 */
+  .slide { position:relative; }
+  .slide .zoomtag {
+    position:absolute; right:14px; bottom:14px; z-index:3;
+    background:rgba(0,0,0,.45); color:#fff; font-size:11px;
+    padding:4px 9px; border-radius:20px; pointer-events:none;
+    display:flex; align-items:center; gap:4px;
+  }
 </style>
 </head>
 <body>
@@ -95,9 +126,14 @@
 <div class="bar" id="bar"></div>
 
 <div class="viewer" id="viewer">
-  <span class="close">✕</span>
-  <img id="vimg" src="" alt="">
-  <div class="hint">点击任意处关闭</div>
+  <span class="close" id="vclose">✕</span>
+  <div class="vstage" id="vstage"><img id="vimg" src="" alt=""></div>
+  <div class="zoombar">
+    <b id="zin">＋</b>
+    <b id="zout">－</b>
+    <b id="zreset">⤾</b>
+  </div>
+  <div class="hint" id="vhint">双指放大 · 双击放大 · 拖动查看 · 点空白处关闭</div>
 </div>
 
 <script>
@@ -134,7 +170,11 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
     im.className = 'pic'; im.src = urls[i]; im.alt = NAME + ' ' + (i + 1);
     im.draggable = false;
     im.onclick = function () { openViewer(urls[i]); };
-    s.appendChild(im); track.appendChild(s);
+    s.appendChild(im);
+    var tag = document.createElement('span');
+    tag.className = 'zoomtag'; tag.textContent = '🔍 点击放大';
+    s.appendChild(tag);
+    track.appendChild(s);
     bar.appendChild(document.createElement('span')).className = 'dot';
   });
 
@@ -189,12 +229,153 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
     }, 60);
   });
 
+  /* ============================================
+     全屏看大图：支持双指捏合 / 双击 / 按钮 放大
+     ============================================ */
   var viewer = document.getElementById('viewer');
-  function openViewer(src) {
-    document.getElementById('vimg').src = src;
-    viewer.classList.add('on');
+  var stage  = document.getElementById('vstage');
+  var vimg   = document.getElementById('vimg');
+  var vhint  = document.getElementById('vhint');
+
+  var scale = 1, minS = 1, maxS = 6;
+  var tx = 0, ty = 0;
+
+  function apply() {
+    // 限制拖动范围，避免拖出屏幕外找不回来
+    var r = vimg.getBoundingClientRect();
+    var maxX = Math.max(0, (vimg.offsetWidth * scale - stage.clientWidth) / 2);
+    var maxY = Math.max(0, (vimg.offsetHeight * scale - stage.clientHeight) / 2);
+    tx = Math.max(-maxX, Math.min(maxX, tx));
+    ty = Math.max(-maxY, Math.min(maxY, ty));
+    vimg.style.transform = 'translate(' + tx + 'px,' + ty + 'px) scale(' + scale + ')';
+    vhint.textContent = scale > 1.01
+      ? '已放大 ' + scale.toFixed(1) + ' 倍 · 拖动查看 · 点右下角 ↺ 复位'
+      : '双指放大 · 双击放大 · 点空白处关闭';
   }
-  viewer.onclick = function () { viewer.classList.remove('on'); };
+  function reset() { scale = 1; tx = 0; ty = 0; apply(); }
+
+  function openViewer(src) {
+    vimg.src = src;
+    viewer.classList.add('on');
+    if (document.body.style.overflow !== 'hidden') {
+      viewer._prevOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+    }
+    reset();
+  }
+  function closeViewer() {
+    viewer.classList.remove('on');
+    document.body.style.overflow = viewer._prevOverflow || '';
+    reset();
+  }
+
+  /* ---- 手指：双指捏合 + 单指拖动 + 双击 ---- */
+  var start = null, lastTap = 0, moved = false;
+
+  function dist(a, b) {
+    var dx = a.clientX - b.clientX, dy = a.clientY - b.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+  function mid(a, b) {
+    return { x: (a.clientX + b.clientX) / 2, y: (a.clientY + b.clientY) / 2 };
+  }
+
+  stage.addEventListener('touchstart', function (e) {
+    moved = false;
+    if (e.touches.length === 2) {
+      start = {
+        d: dist(e.touches[0], e.touches[1]),
+        s: scale,
+        m: mid(e.touches[0], e.touches[1])
+      };
+    } else if (e.touches.length === 1) {
+      start = { x: e.touches[0].clientX, y: e.touches[0].clientY, tx: tx, ty: ty, s: scale };
+    }
+  }, { passive: true });
+
+  stage.addEventListener('touchmove', function (e) {
+    if (!start) return;
+    e.preventDefault();
+    moved = true;
+
+    if (e.touches.length === 2 && start.d) {
+      var nd = dist(e.touches[0], e.touches[1]);
+      scale = Math.max(minS, Math.min(maxS, start.s * (nd / start.d)));
+      // 双指中心移动时同步平移
+      var nm = mid(e.touches[0], e.touches[1]);
+      tx = start.tx2 === undefined ? tx : tx + (nm.x - start.m.x);
+      ty = start.ty2 === undefined ? ty : ty + (nm.y - start.m.y);
+      start.tx2 = tx; start.ty2 = ty; start.m = nm;
+      apply();
+    } else if (e.touches.length === 1 && start.x !== undefined) {
+      // 放大后才能拖动；没放大时横向滑动用来切图
+      if (scale > 1.01) {
+        tx = start.tx + (e.touches[0].clientX - start.x);
+        ty = start.ty + (e.touches[0].clientY - start.y);
+        apply();
+      }
+    }
+  }, { passive: false });
+
+  stage.addEventListener('touchend', function (e) {
+    if (e.touches.length === 0) {
+      // 双击放大
+      var now = Date.now();
+      if (!moved && now - lastTap < 300) {
+        if (scale > 1.01) reset();
+        else { scale = 2.5; apply(); }
+        lastTap = 0;
+      } else if (!moved) {
+        lastTap = now;
+      }
+      start = null;
+    } else if (e.touches.length === 1) {
+      start = { x: e.touches[0].clientX, y: e.touches[0].clientY, tx: tx, ty: ty, s: scale };
+    }
+  }, { passive: true });
+
+  /* ---- 鼠标：滚轮缩放 + 拖动 ---- */
+  var dragging = false, mx = 0, my = 0;
+  stage.addEventListener('mousedown', function (e) {
+    if (scale > 1.01) { dragging = true; mx = e.clientX; my = e.clientY; }
+  });
+  window.addEventListener('mousemove', function (e) {
+    if (!dragging) return;
+    tx += e.clientX - mx; ty += e.clientY - my;
+    mx = e.clientX; my = e.clientY; apply();
+  });
+  window.addEventListener('mouseup', function () { dragging = false; });
+  stage.addEventListener('wheel', function (e) {
+    e.preventDefault();
+    scale = Math.max(minS, Math.min(maxS, scale * (e.deltaY < 0 ? 1.15 : 1 / 1.15)));
+    apply();
+  }, { passive: false });
+
+  /* ---- 右下角按钮 ---- */
+  document.getElementById('zin').onclick = function (e) {
+    e.stopPropagation();
+    scale = Math.min(maxS, scale * 1.5); apply();
+  };
+  document.getElementById('zout').onclick = function (e) {
+    e.stopPropagation();
+    scale = Math.max(minS, scale / 1.5);
+    if (scale <= 1.01) reset(); else apply();
+  };
+  document.getElementById('zreset').onclick = function (e) {
+    e.stopPropagation(); reset();
+  };
+  document.getElementById('vclose').onclick = function (e) {
+    e.stopPropagation(); closeViewer();
+  };
+
+  /* 点空白处关闭（放大状态下不关，避免误触） */
+  viewer.addEventListener('click', function (e) {
+    if (e.target === vimg) return;
+    if (scale > 1.01) { reset(); return; }
+    closeViewer();
+  });
+
+  window.addEventListener('resize', function () { if (viewer.classList.contains('on')) apply(); });
 })();
 </script>
 </body>
